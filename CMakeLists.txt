@@ -47,11 +47,13 @@ include_directories(
 )
 
 set(HDRS
+    include/harmonic_cpp/accessors.hpp
     include/harmonic_cpp/robot_position.hpp
     include/harmonic_cpp/timed_video.hpp
 )
 
 set(SRCS
+   src/accessors.cpp
    src/robot_position.cpp
    src/timed_video.cpp
 )
