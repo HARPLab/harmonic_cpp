@@ -20,22 +20,40 @@ else()
         message(STATUS "The compiler ${CMAKE_CXX_COMPILER} has no C++11 support. Please use a different C++ compiler.")
 endif()
 
+# Find dependencies
 find_package(OpenCV REQUIRED)
+find_package(cnpy QUIET)
 
+if (NOT cnpy_FOUND)
+    message(STATUS "No builtin cnpy found, building from source")
+    add_subdirectory(3rdparty/cnpy)
+    set(cnpy_INCLUDE_DIRS 3rdparty/cnpy)
+    set(cnpy_LIBRARIES cnpy-static)
+    set_property(TARGET ${cnpy_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
+endif()
+
+
+# Set version info
 set(harmonic_cpp_VERSION_MAJOR 0)
 set(harmonic_cpp_VERSION_MINOR 1)
 set(harmonic_cpp_VERSION ${harmonic_cpp_VERSION_MAJOR}.${harmonic_cpp_VERSION_MINOR})
 set(harmonic_cpp_SOVERSION 0.1)
 
-
-include_directories(include)
+# Set up targets
+include_directories(
+    include
+    ${cnpy_INCLUDE_DIRS}
+    ${OpenCV_INCLUDE_DIRS}
+)
 
 set(HDRS
     include/harmonic_cpp/robot_position.hpp
+    include/harmonic_cpp/timed_video.hpp
 )
 
 set(SRCS
    src/robot_position.cpp
+   src/timed_video.cpp
 )
 
 add_library(harmonic_cpp SHARED
@@ -48,12 +66,13 @@ set_target_properties(harmonic_cpp PROPERTIES
     SOVERSION "${harmonic_cpp_SOVERSION}"
 )
 
-target_link_libraries(harmonic_cpp 
-    ${OpenCV_LIBRARIES}
+target_link_libraries(harmonic_cpp
+    PRIVATE cnpy-static
+    PUBLIC ${OpenCV_LIBRARIES}
 )
 
-export(TARGETS harmonic_cpp FILE "${CMAKE_BINARY_DIR}/harmonic_cpp-targets.cmake")
-install(TARGETS harmonic_cpp 
+# Create installation info
+install(TARGETS harmonic_cpp
     EXPORT harmonic_cpp-targets
     LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
     INCLUDES DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}"
@@ -61,6 +80,8 @@ install(TARGETS harmonic_cpp
 install(EXPORT harmonic_cpp-targets 
     DESTINATION "${CMAKE_INSTALL_LIBDIR}/harmonic_cpp")
 
+
+# Become findable by CMake
 include(CMakePackageConfigHelpers)
 
 configure_package_config_file(harmonic_cpp-config.cmake.in harmonic_cpp-config.cmake
