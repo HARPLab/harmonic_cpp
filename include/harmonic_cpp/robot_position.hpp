@@ -24,8 +24,6 @@ struct RobotPositionData {
 		PositionData();
 		cv::Mat data;
 
-		static const std::map<std::string, std::size_t> joint_index_map;
-
 	private:
 		friend class RobotPositionData;
 		PositionData(std::vector<std::string> const & joints, std::vector<std::vector<double>> const & values);
@@ -37,7 +35,7 @@ struct RobotPositionData {
 	PositionData get_position(TimeType const & timestamp) const;
 
 
-	static boost::optional<RobotPositionData> load_from_file(std::string const & filename);
+	static RobotPositionData load_from_file(std::string const & filename);
 
 private:
 

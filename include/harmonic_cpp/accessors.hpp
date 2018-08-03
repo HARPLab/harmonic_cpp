@@ -54,8 +54,7 @@ struct DataRun {
 	// Text data
 	HARMONIC_CPP_MAKE_ACCESSOR(robot_position, DIR_TEXT_DATA / "robot_position.csv")
 
-	// TODO: make this throw an exception rather than return an optional
-	inline boost::optional<RobotPositionData> robot_position() const { return RobotPositionData::load_from_file( robot_position_path()); }
+	inline RobotPositionData robot_position() const { return RobotPositionData::load_from_file( robot_position_path() ); }
 
 private:
 	bool check_valid() const;

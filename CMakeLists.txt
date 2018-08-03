@@ -22,6 +22,7 @@ endif()
 
 # Find dependencies
 find_package(OpenCV REQUIRED)
+find_package(Boost REQUIRED COMPONENTS system filesystem)
 find_package(cnpy QUIET)
 
 if (NOT cnpy_FOUND)
@@ -44,18 +45,21 @@ include_directories(
     include
     ${cnpy_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
+    ${Boost_INCLUDE_DIRS}
 )
 
 set(HDRS
     include/harmonic_cpp/accessors.hpp
     include/harmonic_cpp/robot_position.hpp
     include/harmonic_cpp/timed_video.hpp
+    include/harmonic_cpp/utils.hpp
 )
 
 set(SRCS
    src/accessors.cpp
    src/robot_position.cpp
    src/timed_video.cpp
+   src/utils.cpp
 )
 
 add_library(harmonic_cpp SHARED
@@ -70,7 +74,7 @@ set_target_properties(harmonic_cpp PROPERTIES
 
 target_link_libraries(harmonic_cpp
     PRIVATE cnpy-static
-    PUBLIC ${OpenCV_LIBRARIES}
+    PUBLIC ${OpenCV_LIBRARIES} ${Boost_LIBRARIES}
 )
 
 # Create installation info
@@ -98,6 +102,16 @@ install(FILES
   "${CMAKE_BINARY_DIR}/harmonic_cpp-config.cmake"
   "${CMAKE_BINARY_DIR}/harmonic_cpp-config-version.cmake"
   DESTINATION "${CMAKE_INSTALL_LIBDIR}/harmonic_cpp")
+  
+ option(harmonic_cpp_TESTS ON)
+ if (harmonic_cpp_TESTS)
+   add_executable(robot_position_test
+       src/test/robot_position_test.cpp
+   )
+   target_link_libraries(robot_position_test
+       harmonic_cpp)
+ endif()
+ 
 
 
 

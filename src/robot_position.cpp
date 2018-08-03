@@ -2,65 +2,83 @@
 
 #include <fstream>
 #include <iostream>
+#include <boost/lexical_cast.hpp>
+
+#include "harmonic_cpp/utils.hpp"
 
 namespace harmonic {
 
-std::map<std::string, std::size_t> const RobotPositionData::PositionData::joint_index_map {
-		{"mico_link_1", 0},
-		{"mico_link_2", 1},
-		{"mico_link_3", 2},
-		{"mico_link_4", 3},
-		{"mico_link_5", 4},
-		{"mico_link_hand", 5}
+std::map<std::string, std::size_t> const JOINT_INDEX_MAP {
+		{"mico_link_base", 0},
+		{"mico_link_1", 1},
+		{"mico_link_2", 2},
+		{"mico_link_3", 3},
+		{"mico_link_4", 4},
+		{"mico_link_5", 5},
+		{"mico_link_hand", 6}
 };
 
+std::vector<std::string> const JOINT_NAMES {
+	"mico_link_base",
+	"mico_link_1",
+	"mico_link_2",
+	"mico_link_3",
+	"mico_link_4",
+	"mico_link_5",
+	"mico_link_hand"
+};
 
+std::vector<std::string> const SUFFIXES {
+	"_x",
+	"_y",
+	"_z"
+};
 
-boost::optional<RobotPositionData> RobotPositionData::load_from_file(std::string const & infile) {
+std::vector<std::string> const DESIRED_HEADERS {
+	"timestamp",
+	"mico_link_base_x",
+	"mico_link_base_y",
+	"mico_link_base_z",
+	"mico_link_1_x",
+	"mico_link_1_y",
+	"mico_link_1_z",
+	"mico_link_2_x",
+	"mico_link_2_y",
+	"mico_link_2_z",
+	"mico_link_3_x",
+	"mico_link_3_y",
+	"mico_link_3_z",
+	"mico_link_4_x",
+	"mico_link_4_y",
+	"mico_link_4_z",
+	"mico_link_5_x",
+	"mico_link_5_y",
+	"mico_link_5_z",
+	"mico_link_hand_x",
+	"mico_link_hand_y",
+	"mico_link_hand_z"
+};
+
+RobotPositionData RobotPositionData::load_from_file(std::string const & infile) {
 	std::ifstream instream(infile);
 	std::string line;
 	std::getline(instream, line, '\n');
 
 	if (instream.good()) {
-		std::istringstream linestream(line);
+		// build the header map
 
-//		std::cout << "Processing line:\n" << line << std::endl;
+		std::vector<std::string> const headers(parse_csv_line(line));
 
-		std::string token;
-		std::getline(linestream, token, ',');
-		if (!linestream.good() || token != "time") {
-			std::cout << "Bad format at first header for file " << infile << std::endl;
-			return boost::optional<RobotPositionData>();
-		}
-
-		std::uint8_t idx = 0;
-		std::vector<std::string> const suffixes {"_x", "_y", "_z"};
-		std::vector<std::string> joints;
-
-		std::string last_joint;
-		while (linestream.good()) {
-			std::getline(linestream, token, ',');
-
-			if (idx == 0) {
-				std::size_t loc = token.rfind(suffixes[idx]);
-				if (loc == std::string::npos || loc != token.size()-suffixes[idx].size()) {
-					std::cout << "Unexpected header: " << token << " for file " << infile << "(matched at: " << loc << ")" <<std::endl;
-					std::cout << "Token size: " << token.size() << "; suffix size: " << suffixes[idx].size() << std::endl;
-					return boost::optional<RobotPositionData>();
-				} else {
-					joints.push_back(token.substr(0, loc));
-				}
-			} else if (token != joints.back() + suffixes[idx]) {
-				std::cout << "Unexpected header: " << token << " for file " << infile << std::endl;
-				return boost::optional<RobotPositionData>();
+		std::map<std::string, std::size_t> index_map;
+		std::transform(DESIRED_HEADERS.begin(), DESIRED_HEADERS.end(),
+				std::inserter(index_map, index_map.begin()),
+				[&headers] (std::string const & header) {
+			auto it = std::find(headers.begin(), headers.end(), header);
+			if (it == headers.end()) {
+				throw std::runtime_error("File missing required header: " + header);
 			}
-			idx = ++idx % suffixes.size();
-		}
-		if (idx != 0 ) {
-			std::cout << "failed to process headers: bad checksum" << std::endl;
-			return boost::optional<RobotPositionData>();
-		}
-//		std::cout << "read headers for " << joints.size() << " joints" << std::endl;
+			return std::make_pair(header, std::distance(headers.begin(), it));
+		});
 
 		// Read the data
 		RobotPositionData data;
@@ -69,56 +87,40 @@ boost::optional<RobotPositionData> RobotPositionData::load_from_file(std::string
 //			std::cout << "Processing line:\n" << line << std::endl;
 			if (!instream.good()) break;
 
-			std::istringstream linestream(line);
-			std::string token;
-			std::getline(linestream, token, ',');
-			if (!linestream.good()) break;
+			std::vector<std::string> const line_data(parse_csv_line(line));
 
-			TimeType time = std::stod(token);
-			std::uint8_t prop_index = 0;
+			TimeType time = boost::lexical_cast<double>(line_data[index_map.at("timestamp")]);
 			std::vector<std::vector<double> > values;
 
-			while (linestream.good()) {
-				std::getline(linestream, token, ',');
-
-				if (prop_index == 0) {
-					values.emplace_back();
+			for ( auto const & joint : JOINT_NAMES) {
+				std::vector<double> joint_vals;
+				joint_vals.reserve(3);
+				for ( auto const & suffix : SUFFIXES ) {
+					joint_vals.push_back(boost::lexical_cast<double>(line_data[index_map.at(joint + suffix)]));
 				}
-//				std::cout << "Processing token: " << token << "(" << values.size() << ":" << static_cast<int>(prop_index) << "): " << std::stod(token) << std::endl;
-
-				values.back().push_back(std::stod(token));
-				prop_index = ++prop_index % suffixes.size();
-
-			}
-			if (prop_index != 0) {
-				std::cout << "checksum failed, ended at strange prop num" << std::endl;
-				return boost::optional<RobotPositionData>();
+				values.push_back(std::move(joint_vals));
 			}
 
-			data.data.emplace(time, PositionData(joints, values));
+			data.data.emplace(time, PositionData(JOINT_NAMES, values));
 		}
 
-//		std::cout << data.data.begin()->second.data << std::endl;
-
-		return boost::optional<RobotPositionData>(std::move(data));
+		return data;
 
 	} else {
-		return boost::optional<RobotPositionData>();
+		throw std::runtime_error("Failed to read from file " + infile);
 	}
 
 }
 
 RobotPositionData::PositionData::PositionData() :
-	data(3, RobotPositionData::PositionData::joint_index_map.size(), CV_32F) {}
+	data(3, JOINT_INDEX_MAP.size(), CV_32F) {}
 
 RobotPositionData::PositionData::PositionData(std::vector<std::string> const & joints, std::vector<std::vector<double> > const & values) :
-	data(3, RobotPositionData::PositionData::joint_index_map.size(), CV_32F) {
+	data(3, JOINT_INDEX_MAP.size(), CV_32F) {
 	auto joint = joints.begin();
 	auto value = values.begin();
 	while (joint != joints.end() && value != values.end()) {
-		cv::Mat(*value).copyTo(this->data.col(RobotPositionData::PositionData::joint_index_map.at(*joint)));
-//		std::cout << "expected: " << cv::Mat(*value) << std::endl;
-//		std::cout << "actual: " << this->data.col(RobotPositionData::PositionData::joint_index_map.at(*joint)) << std::endl;
+		cv::Mat(*value).copyTo(this->data.col(JOINT_INDEX_MAP.at(*joint)));
 		++joint; ++value;
 	}
 }
