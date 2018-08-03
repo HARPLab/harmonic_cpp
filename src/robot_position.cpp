@@ -113,16 +113,17 @@ RobotPositionData RobotPositionData::load_from_file(std::string const & infile) 
 }
 
 RobotPositionData::PositionData::PositionData() :
-	data(3, JOINT_INDEX_MAP.size(), CV_32F) {}
+	data(JOINT_INDEX_MAP.size(), 3, CV_64F) {}
 
 RobotPositionData::PositionData::PositionData(std::vector<std::string> const & joints, std::vector<std::vector<double> > const & values) :
-	data(3, JOINT_INDEX_MAP.size(), CV_32F) {
+	data(3, JOINT_INDEX_MAP.size(), CV_64F) {
 	auto joint = joints.begin();
 	auto value = values.begin();
 	while (joint != joints.end() && value != values.end()) {
 		cv::Mat(*value).copyTo(this->data.col(JOINT_INDEX_MAP.at(*joint)));
 		++joint; ++value;
 	}
+	data = data.t();
 }
 
 
