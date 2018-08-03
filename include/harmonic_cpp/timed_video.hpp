@@ -17,6 +17,7 @@ namespace harmonic {
 struct TimedFrame {
 	cv::Mat frame;
 	double time;
+	std::size_t frame_index;
 
 	bool operator==(TimedFrame const & other) const {
 		if (this == &other) return true;
@@ -72,7 +73,7 @@ public:
 private:
 	cv::VideoCapture cap;
 	std::vector<double> times;
-	std::vector<double>::iterator next_time;
+	std::size_t index;
 
 };
 

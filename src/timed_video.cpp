@@ -14,7 +14,7 @@ namespace harmonic {
 TimedVideo::TimedVideo(std::string const & video_file, std::string const & time_file) :
 	cap(video_file),
 	times(cnpy::npy_load(time_file).as_vec<double>()),
-	next_time(times.begin()) {
+	index(0) {
 	// empty
 }
 
@@ -31,7 +31,9 @@ void TimedVideoIterator::increment() {
 boost::optional<TimedFrame> TimedVideo::next() {
 	TimedFrame res;
 	if (this->cap.read(res.frame)) {
-		res.time = *(this->next_time++);
+		++(this->index);
+		res.time = this->times[this->index];
+		res.frame_index = this->index;
 		return boost::optional<TimedFrame>(std::move(res));
 	} else {
 		return boost::optional<TimedFrame>();

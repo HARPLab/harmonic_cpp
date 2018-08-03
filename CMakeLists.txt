@@ -110,6 +110,12 @@ install(FILES
    )
    target_link_libraries(robot_position_test
        harmonic_cpp)
+       
+   add_executable(timed_video_test
+       src/test/timed_video_test.cpp
+   )
+   target_link_libraries(timed_video_test
+       harmonic_cpp)
  endif()
  
 
