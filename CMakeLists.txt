@@ -116,6 +116,12 @@ install(FILES
    )
    target_link_libraries(timed_video_test
        harmonic_cpp)
+       
+   add_executable(accessor_iterator_test
+       src/test/accessor_iterator_test.cpp
+   )
+   target_link_libraries(accessor_iterator_test
+       harmonic_cpp)
  endif()
  
 

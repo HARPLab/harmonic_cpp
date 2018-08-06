@@ -9,6 +9,7 @@
 #define INCLUDE_HARMONIC_CPP_ACCESSORS_HPP_
 
 #include <boost/filesystem.hpp>
+#include <boost/iterator/iterator_facade.hpp>
 
 #include "harmonic_cpp/robot_position.hpp"
 #include "harmonic_cpp/timed_video.hpp"
@@ -35,6 +36,8 @@ HARMONIC_CPP_MAKE_VAL(DIR, PROCESSED, "processed");
 struct DataRun {
 	DataRun(std::string const & root_dir);
 
+	HARMONIC_CPP_MAKE_ACCESSOR(root, ".")
+
 	// Directories
 	HARMONIC_CPP_MAKE_ACCESSOR(text_data, DIR_TEXT_DATA_FS)
 	HARMONIC_CPP_MAKE_ACCESSOR(stats, DIR_STATS_FS)
@@ -46,7 +49,7 @@ struct DataRun {
 	HARMONIC_CPP_MAKE_ACCESSOR(pupil_world, DIR_VIDEOS_FS / "world.mp4")
 	HARMONIC_CPP_MAKE_ACCESSOR(pupil_world_ts, DIR_VIDEOS_FS / "world_timestamps.npy")
 
-	inline TimedVideo pupil_world() const { return TimedVideo(pupil_world_path(), pupil_world_ts_path()); }
+	inline TimedVideo pupil_world() const {return TimedVideo(pupil_world_path(), pupil_world_ts_path());}
 
 	// Stats
 	HARMONIC_CPP_MAKE_ACCESSOR(run_info, DIR_STATS / "run_info.yaml")
@@ -54,19 +57,48 @@ struct DataRun {
 	// Text data
 	HARMONIC_CPP_MAKE_ACCESSOR(robot_position, DIR_TEXT_DATA / "robot_position.csv")
 
-	inline RobotPositionData robot_position() const { return RobotPositionData::load_from_file( robot_position_path() ); }
+	inline RobotPositionData robot_position() const {return RobotPositionData::load_from_file( robot_position_path() );}
 
 private:
+	DataRun();
 	bool check_valid() const;
 	boost::filesystem::path root_dir;
+
+	friend class DataRunIterator;
 };
 
-// TODO!
-//std::vector<DataRun> find_data(std::string const & base_path);
+
+struct DataRunIterator: public boost::iterator_facade<
+		DataRunIterator,
+		const DataRun,
+		boost::incrementable_traversal_tag
+		> {
+public:
+	DataRunIterator() : iter(), data_run() {}
+	explicit DataRunIterator(std::string const & base_path,
+			boost::filesystem::symlink_option opt = boost::filesystem::symlink_option::none);
+private:
+	friend class boost::iterator_core_access;
+
+	void increment();
+	void get_next();
+	bool equal(DataRunIterator const & other) const {
+		return other.iter == iter;
+	}
+
+	DataRun const & dereference() const {
+		// dereference the iterator, this will crash if it's past-the-end
+		*iter;
+		return data_run;
+	}
+
+	boost::filesystem::recursive_directory_iterator iter;
+
+	// this is a shallow view of the iterator, kept only for object storage reasons
+	DataRun data_run;
+};
 
 
-} // namespace harmonic
-
-
+}// namespace harmonic
 
 #endif /* INCLUDE_HARMONIC_CPP_ACCESSORS_HPP_ */
