@@ -9,7 +9,9 @@
 #define INCLUDE_HARMONIC_CPP_ACCESSORS_HPP_
 
 #include <boost/filesystem.hpp>
-#include <boost/iterator/iterator_facade.hpp>
+#include <boost/iterator/filter_iterator.hpp>
+#include <boost/iterator/transform_iterator.hpp>
+#include <boost/range/algorithm.hpp>
 
 #include "harmonic_cpp/robot_position.hpp"
 #include "harmonic_cpp/timed_video.hpp"
@@ -34,7 +36,9 @@ HARMONIC_CPP_MAKE_VAL(DIR, VIDEOS, "videos");
 HARMONIC_CPP_MAKE_VAL(DIR, PROCESSED, "processed");
 
 struct DataRun {
-	DataRun(std::string const & root_dir);
+	DataRun(char const * root_dir) : DataRun(boost::filesystem::path(root_dir)) {}
+	DataRun(std::string const & root_dir) : DataRun(boost::filesystem::path(root_dir)) {}
+	DataRun(boost::filesystem::path const & root_dir);
 
 	HARMONIC_CPP_MAKE_ACCESSOR(root, ".")
 
@@ -64,38 +68,65 @@ private:
 	bool check_valid() const;
 	boost::filesystem::path root_dir;
 
-	friend class DataRunIterator;
+	friend class DataRunChecker;
+	friend class DataRunPrinter;
 };
 
-
-struct DataRunIterator: public boost::iterator_facade<
-		DataRunIterator,
-		const DataRun,
-		boost::incrementable_traversal_tag
-		> {
-public:
-	DataRunIterator() : iter(), data_run() {}
-	explicit DataRunIterator(std::string const & base_path,
-			boost::filesystem::symlink_option opt = boost::filesystem::symlink_option::none);
-private:
-	friend class boost::iterator_core_access;
-
-	void increment();
-	void get_next();
-	bool equal(DataRunIterator const & other) const {
-		return other.iter == iter;
+struct DataRunChecker {
+	bool operator()(boost::filesystem::path const & path) const {
+		DataRun tester; // must use default constructor to prevent exception-initialization
+		tester.root_dir = path;
+		return tester.check_valid();
 	}
-
-	DataRun const & dereference() const {
-		// dereference the iterator, this will crash if it's past-the-end
-		*iter;
-		return data_run;
+};
+struct DataRunCreator {
+	DataRun operator()(boost::filesystem::path const & path) const {
+		return DataRun(path);
 	}
+};
+struct DataRunPrinter {
+	std::string operator()(DataRun const & run) const {
+		return run.root_dir.native();
+	}
+};
 
-	boost::filesystem::recursive_directory_iterator iter;
+typedef boost::transform_iterator<DataRunCreator,
+			boost::filter_iterator<
+				DataRunChecker,
+				boost::filesystem::directory_iterator>
+		> DataRunIterator;
+typedef boost::transform_iterator<DataRunCreator,
+			boost::filter_iterator<
+				DataRunChecker,
+				boost::filesystem::recursive_directory_iterator>
+		> DataRunRecursiveIterator;
 
-	// this is a shallow view of the iterator, kept only for object storage reasons
-	DataRun data_run;
+DataRunIterator data_run_iterator() {
+	return DataRunIterator();
+}
+DataRunIterator data_run_iterator(std::string const & base_path) {
+	return DataRunIterator(boost::filesystem::directory_iterator(base_path));
+}
+boost::iterator_range<DataRunIterator> data_run_range(std::string const & base_path) {
+	return boost::make_iterator_range(data_run_iterator(base_path), data_run_iterator());
+}
+
+
+DataRunRecursiveIterator data_run_recursive_iterator() {
+	return DataRunRecursiveIterator();
+}
+DataRunRecursiveIterator data_run_recursive_iterator(std::string const & base_path) {
+	return DataRunRecursiveIterator(boost::filesystem::recursive_directory_iterator(base_path));
+}
+boost::iterator_range<DataRunRecursiveIterator> data_run_recursive_range(std::string const & base_path) {
+	return boost::make_iterator_range(data_run_recursive_iterator(base_path), data_run_recursive_iterator());
+}
+
+
+struct HarmonicDataset {
+	HarmonicDataset(std::string const & root_path);
+
+
 };
 
 
