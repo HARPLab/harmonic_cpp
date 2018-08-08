@@ -11,7 +11,10 @@
 #include <boost/filesystem.hpp>
 #include <boost/iterator/filter_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
+#include <boost/range/adaptor/transformed.hpp>
+#include <boost/range/adaptor/filtered.hpp>
 #include <boost/range/algorithm.hpp>
+#include <boost/lexical_cast.hpp>
 
 #include "harmonic_cpp/robot_position.hpp"
 #include "harmonic_cpp/timed_video.hpp"
@@ -28,6 +31,21 @@ namespace harmonic {
 HARMONIC_CPP_MAKE_VAL(TAG, RUN, "run");
 HARMONIC_CPP_MAKE_VAL(TAG, CHECK, "check");
 HARMONIC_CPP_MAKE_VAL(TAG, CALIB, "calib");
+
+enum TAG {
+	RUN,
+	CHECK,
+	CALIB
+};
+
+boost::filesystem::path get_path_from_tag(TAG tag) {
+	switch (tag) {
+	case RUN: return TAG_RUN_FS;
+	case CHECK: return TAG_CHECK_FS;
+	case CALIB: return TAG_CALIB_FS;
+	default: throw std::runtime_error("Unknown tag: " + boost::lexical_cast<std::string>(tag));
+	}
+}
 
 HARMONIC_CPP_MAKE_VAL(DIR, TEXT_DATA, "text_data");
 HARMONIC_CPP_MAKE_VAL(DIR, STATS, "stats");
@@ -63,9 +81,10 @@ struct DataRun {
 
 	inline RobotPositionData robot_position() const {return RobotPositionData::load_from_file( robot_position_path() );}
 
+	static bool check_valid(boost::filesystem::path const & path);
+
 private:
 	DataRun();
-	bool check_valid() const;
 	boost::filesystem::path root_dir;
 
 	friend class DataRunChecker;
@@ -74,9 +93,7 @@ private:
 
 struct DataRunChecker {
 	bool operator()(boost::filesystem::path const & path) const {
-		DataRun tester; // must use default constructor to prevent exception-initialization
-		tester.root_dir = path;
-		return tester.check_valid();
+		return DataRun::check_valid(path);
 	}
 };
 struct DataRunCreator {
@@ -126,7 +143,119 @@ boost::iterator_range<DataRunRecursiveIterator> data_run_recursive_range(std::st
 struct HarmonicDataset {
 	HarmonicDataset(std::string const & root_path);
 
+	struct Specifier {
 
+		struct PartId {
+			typedef std::size_t value;
+			inline static value get(Specifier const & spec) { return spec.part_id; }
+			inline static value parse(std::string const & val) { return boost::lexical_cast<value>(val); }
+		};
+		struct Tag {
+			typedef TAG value;
+			inline static value get(Specifier const & spec) { return spec.tag; }
+			static value parse(std::string const & val);
+		};
+		struct RunId {
+			typedef std::size_t value;
+			inline static value get(Specifier const & spec) { return spec.run_id; }
+			inline static value parse(std::string const & val) { return boost::lexical_cast<value>(val); }
+		};
+
+		template <class T>
+		struct FilterBase {
+			FilterBase(typename T::value const & filt) : filt(filt) {}
+			inline bool operator()(Specifier const & spec) const { return T::get(spec) == filt; }
+		private:
+			typename T::value filt;
+		};
+		template <class Filter1, class Filter2>
+		struct FilterAnd {
+			FilterAnd(Filter1 filt1, Filter2 filt2) : filt1(filt1), filt2(filt2) {}
+			inline bool operator()(Specifier const & spec) const { return filt1(spec) && filt2(spec); }
+		private:
+			Filter1 filt1;
+			Filter2 filt2;
+		};
+		template <class F1, class F2>
+		static FilterAnd<F1, F2> filter_and(F1 f1, F2 f2) { return FilterAnd<F1, F2>(f1, f2); }
+
+		template <class Filter1, class Filter2>
+		struct FilterOr {
+			FilterOr(Filter1 filt1, Filter2 filt2) : filt1(filt1), filt2(filt2) {}
+			inline bool operator()(Specifier const & spec) const { return filt1(spec) || filt2(spec); }
+		private:
+			Filter1 filt1;
+			Filter2 filt2;
+		};
+		template <class F1, class F2>
+		static FilterOr<F1, F2> filter_or(F1 f1, F2 f2) { return FilterOr<F1, F2>(f1, f2); }
+
+		typedef FilterBase<PartId> PartIdFilter;
+		typedef FilterBase<Tag> TagFilter;
+		typedef FilterBase<RunId> RunIdFilter;
+
+		PartId::value part_id;
+		Tag::value tag;
+		RunId::value run_id;
+
+		struct Lookup {
+		public:
+			inline DataRun operator()(Specifier const & spec) const {
+				return Lookup::lookup(root_path, spec);
+			}
+		private:
+			Lookup() : root_path() {
+				throw std::runtime_error("not accessible!");
+			}
+			Lookup(boost::filesystem::path const & path) : root_path(path) {}
+			static DataRun lookup(boost::filesystem::path const & root_path, Specifier const & spec);
+			boost::filesystem::path root_path;
+			friend class HarmonicDataset;
+		};
+	};
+
+	inline DataRun get(Specifier const & specifier) const {
+		return Specifier::Lookup::lookup(root_path, specifier);
+	}
+	inline DataRun operator()(Specifier const & specifier) const {
+		return get(specifier);
+	}
+	inline Specifier::Lookup getter() const {
+		return Specifier::Lookup(this->root_path);
+	}
+	inline auto transformer() const -> decltype(boost::adaptors::transformed(Specifier::Lookup())) {
+		return boost::adaptors::transformed(getter());
+	}
+
+	template <class Range,
+		typename boost::enable_if< boost::has_range_const_iterator<Range>, int >::type = 0>
+	inline auto get(Range const & r) const
+		-> decltype(r | transformer()) {
+		return r | transformer();
+	}
+
+	inline auto get() const -> decltype(get(std::vector<Specifier>())) {
+		return get(all_data);
+	}
+
+	template <class Range, class Filter>
+	inline auto get(Range const & r, Filter filt) const -> decltype(get(r | boost::adaptors::filtered(filt))) {
+		return get( r | boost::adaptors::filtered(filt));
+	}
+
+	template <class Filter,
+		typename boost::disable_if< boost::has_range_const_iterator<Filter>, int >::type = 0>
+	inline auto get(Filter filt) const -> decltype(get(std::vector<Specifier>(), filt)) {
+		return get(all_data, filt);
+	}
+
+	inline std::vector<Specifier> const & data() const {
+		return all_data;
+	}
+
+private:
+	boost::filesystem::path root_path;
+	std::vector<Specifier> all_data;
 };
 
 

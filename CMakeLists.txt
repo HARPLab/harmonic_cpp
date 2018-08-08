@@ -22,7 +22,7 @@ endif()
 
 # Find dependencies
 find_package(OpenCV REQUIRED)
-find_package(Boost REQUIRED COMPONENTS system filesystem)
+find_package(Boost REQUIRED COMPONENTS system filesystem regex)
 find_package(cnpy QUIET)
 
 if (NOT cnpy_FOUND)
@@ -121,6 +121,12 @@ install(FILES
        src/test/accessor_iterator_test.cpp
    )
    target_link_libraries(accessor_iterator_test
+       harmonic_cpp)
+       
+   add_executable(dataset_test
+       src/test/dataset_test.cpp
+   )
+   target_link_libraries(dataset_test
        harmonic_cpp)
  endif()
  
