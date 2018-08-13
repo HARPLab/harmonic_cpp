@@ -33,6 +33,15 @@ if (NOT cnpy_FOUND)
     set_property(TARGET ${cnpy_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
 endif()
 
+find_package(YAML_CPP QUIET)
+if (NOT YAML_CPP_FOUND)
+    message(STATUS "No builtin YAML_CPP found, building from source")
+    add_subdirectory(3rdparty/yaml-cpp)
+    set(YAML_CPP_LIBRARIES yaml-cpp)
+    set(YAML_CPP_INCLUDE_DIR 3rdparty/yaml-cpp/include)
+    set_property(TARGET ${YAML_CPP_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
+endif()
+
 
 # Set version info
 set(harmonic_cpp_VERSION_MAJOR 0)
@@ -44,12 +53,14 @@ set(harmonic_cpp_SOVERSION 0.1)
 include_directories(
     include
     ${cnpy_INCLUDE_DIRS}
+    ${YAML_CPP_INCLUDE_DIR}
     ${OpenCV_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
 
 set(HDRS
     include/harmonic_cpp/accessors.hpp
+    include/harmonic_cpp/morsel_info.hpp
     include/harmonic_cpp/robot_position.hpp
     include/harmonic_cpp/timed_video.hpp
     include/harmonic_cpp/utils.hpp
@@ -57,6 +68,7 @@ set(HDRS
 
 set(SRCS
    src/accessors.cpp
+   src/morsel_info.cpp
    src/robot_position.cpp
    src/timed_video.cpp
    src/utils.cpp
@@ -73,7 +85,7 @@ set_target_properties(harmonic_cpp PROPERTIES
 )
 
 target_link_libraries(harmonic_cpp
-    PRIVATE cnpy-static
+    PRIVATE cnpy-static ${YAML_CPP_LIBRARIES}
     PUBLIC ${OpenCV_LIBRARIES} ${Boost_LIBRARIES}
 )
 
@@ -127,6 +139,13 @@ install(FILES
        src/test/dataset_test.cpp
    )
    target_link_libraries(dataset_test
+       harmonic_cpp)
+       
+       
+   add_executable(morsel_test
+       src/test/morsel_test.cpp
+   )
+   target_link_libraries(morsel_test
        harmonic_cpp)
  endif()
  

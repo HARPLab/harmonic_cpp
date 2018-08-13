@@ -16,6 +16,7 @@
 #include <boost/range/algorithm.hpp>
 #include <boost/lexical_cast.hpp>
 
+#include "harmonic_cpp/morsel_info.hpp"
 #include "harmonic_cpp/robot_position.hpp"
 #include "harmonic_cpp/timed_video.hpp"
 
@@ -78,8 +79,11 @@ struct DataRun {
 
 	// Text data
 	HARMONIC_CPP_MAKE_ACCESSOR(robot_position, DIR_TEXT_DATA / "robot_position.csv")
+	HARMONIC_CPP_MAKE_ACCESSOR(morsel_info, DIR_TEXT_DATA / "morsel.yaml")
+
 
 	inline RobotPositionData robot_position() const {return RobotPositionData::load_from_file( robot_position_path() );}
+	inline MorselInfo morsel_info() const { return MorselInfo::load_from_file( morsel_info_path() ); }
 
 	static bool check_valid(boost::filesystem::path const & path);
 
