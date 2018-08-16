@@ -17,8 +17,7 @@ std::map<std::string, std::size_t> const JOINT_INDEX_MAP {
 		{"mico_link_5", 5},
 		{"mico_link_hand", 6},
 		{"mico_end_effector", 7},
-		{"mico_tool", 8},
-		{"mico_fork", 9}
+		{"mico_fork_tip", 8}
 };
 
 std::vector<std::string> const JOINT_NAMES {
@@ -30,8 +29,7 @@ std::vector<std::string> const JOINT_NAMES {
 	"mico_link_5",
 	"mico_link_hand",
 	"mico_end_effector",
-	"mico_tool",
-	"mico_fork"
+	"mico_fork_tip"
 };
 
 std::vector<std::string> const SUFFIXES {
@@ -66,12 +64,9 @@ std::vector<std::string> const DESIRED_HEADERS {
 	"mico_end_effector_x",
 	"mico_end_effector_y",
 	"mico_end_effector_z",
-	"mico_tool_x",
-	"mico_tool_y",
-	"mico_tool_z",
-	"mico_fork_x",
-	"mico_fork_y",
-	"mico_fork_z"
+	"mico_fork_tip_x",
+	"mico_fork_tip_y",
+	"mico_fork_tip_z"
 };
 
 RobotPositionData RobotPositionData::load_from_file(std::string const & infile) {
