@@ -33,13 +33,13 @@ if (NOT cnpy_FOUND)
     set_property(TARGET ${cnpy_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
 endif()
 
-find_package(YAML_CPP QUIET)
+find_package(yaml-cpp )
 if (NOT YAML_CPP_FOUND)
-    message(STATUS "No builtin YAML_CPP found, building from source")
-    add_subdirectory(3rdparty/yaml-cpp)
-    set(YAML_CPP_LIBRARIES yaml-cpp)
-    set(YAML_CPP_INCLUDE_DIR 3rdparty/yaml-cpp/include)
-    set_property(TARGET ${YAML_CPP_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
+#    message(STATUS "No builtin YAML_CPP found, building from source")
+#    add_subdirectory(3rdparty/yaml-cpp)
+#    set(YAML_CPP_LIBRARIES yaml-cpp)
+#    set(YAML_CPP_INCLUDE_DIR 3rdparty/yaml-cpp/include)
+#    set_property(TARGET ${YAML_CPP_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
 endif()
 
 
@@ -53,7 +53,7 @@ set(harmonic_cpp_SOVERSION 0.1)
 include_directories(
     include
     ${cnpy_INCLUDE_DIRS}
-    ${YAML_CPP_INCLUDE_DIR}
+    ${YAML_CPP_INCLUDE_DIRS}
     ${OpenCV_INCLUDE_DIRS}
     ${Boost_INCLUDE_DIRS}
 )
@@ -83,10 +83,15 @@ set_target_properties(harmonic_cpp PROPERTIES
     VERSION "${harmonic_cpp_VERSION}"
     SOVERSION "${harmonic_cpp_SOVERSION}"
 )
-
 target_link_libraries(harmonic_cpp
-    PRIVATE cnpy-static ${YAML_CPP_LIBRARIES}
-    PUBLIC ${OpenCV_LIBRARIES} ${Boost_LIBRARIES}
+    PRIVATE 
+    cnpy-static
+)
+target_link_libraries(harmonic_cpp
+    PUBLIC
+    ${OpenCV_LIBRARIES} 
+    ${Boost_LIBRARIES} 
+    ${YAML_CPP_LIBRARIES}
 )
 
 # Create installation info
@@ -140,7 +145,6 @@ install(FILES
    )
    target_link_libraries(dataset_test
        harmonic_cpp)
-       
        
    add_executable(morsel_test
        src/test/morsel_test.cpp
