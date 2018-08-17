@@ -10,9 +10,8 @@ int main(int argc, char** argv) {
 	}
 
 	boost::copy(
-			harmonic::data_run_recursive_range(argv[1]) |
-				boost::adaptors::transformed(harmonic::DataRunPrinter()),
-			std::ostream_iterator<std::string>(std::cout, "\n")
+			harmonic::data_run_recursive_range(argv[1]),
+			std::ostream_iterator<harmonic::DataRun>(std::cout, "\n")
 			);
 //	std::for_each(
 //			harmonic::data_run_recursive_iterator(argv[1]),

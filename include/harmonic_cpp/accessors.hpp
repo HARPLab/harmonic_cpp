@@ -8,6 +8,7 @@
 #ifndef INCLUDE_HARMONIC_CPP_ACCESSORS_HPP_
 #define INCLUDE_HARMONIC_CPP_ACCESSORS_HPP_
 
+#include <iostream>
 #include <boost/filesystem.hpp>
 #include <boost/iterator/filter_iterator.hpp>
 #include <boost/iterator/transform_iterator.hpp>
@@ -54,10 +55,65 @@ HARMONIC_CPP_MAKE_VAL(DIR, KEYPOINTS, "keypoints");
 HARMONIC_CPP_MAKE_VAL(DIR, VIDEOS, "videos");
 HARMONIC_CPP_MAKE_VAL(DIR, PROCESSED, "processed");
 
+struct Specifier {
+	struct PartId {
+		typedef std::size_t value;
+		inline static value get(Specifier const & spec) { return spec.part_id; }
+		inline static value parse(std::string const & val) { return boost::lexical_cast<value>(val); }
+	};
+	struct Tag {
+		typedef TAG value;
+		inline static value get(Specifier const & spec) { return spec.tag; }
+		static value parse(std::string const & val);
+	};
+	struct RunId {
+		typedef std::size_t value;
+		inline static value get(Specifier const & spec) { return spec.run_id; }
+		inline static value parse(std::string const & val) { return boost::lexical_cast<value>(val); }
+	};
+
+	template <class T>
+	struct FilterBase {
+		FilterBase(typename T::value const & filt) : filt(filt) {}
+		inline bool operator()(Specifier const & spec) const { return T::get(spec) == filt; }
+	private:
+		typename T::value filt;
+	};
+	template <class Filter1, class Filter2>
+	struct FilterAnd {
+		FilterAnd(Filter1 filt1, Filter2 filt2) : filt1(filt1), filt2(filt2) {}
+		inline bool operator()(Specifier const & spec) const { return filt1(spec) && filt2(spec); }
+	private:
+		Filter1 filt1;
+		Filter2 filt2;
+	};
+	template <class F1, class F2>
+	static FilterAnd<F1, F2> filter_and(F1 f1, F2 f2) { return FilterAnd<F1, F2>(f1, f2); }
+
+	template <class Filter1, class Filter2>
+	struct FilterOr {
+		FilterOr(Filter1 filt1, Filter2 filt2) : filt1(filt1), filt2(filt2) {}
+		inline bool operator()(Specifier const & spec) const { return filt1(spec) || filt2(spec); }
+	private:
+		Filter1 filt1;
+		Filter2 filt2;
+	};
+	template <class F1, class F2>
+	static FilterOr<F1, F2> filter_or(F1 f1, F2 f2) { return FilterOr<F1, F2>(f1, f2); }
+
+	typedef FilterBase<PartId> PartIdFilter;
+	typedef FilterBase<Tag> TagFilter;
+	typedef FilterBase<RunId> RunIdFilter;
+
+	PartId::value part_id;
+	Tag::value tag;
+	RunId::value run_id;
+};
+
 struct DataRun {
-	DataRun(char const * root_dir) : DataRun(boost::filesystem::path(root_dir)) {}
-	DataRun(std::string const & root_dir) : DataRun(boost::filesystem::path(root_dir)) {}
-	DataRun(boost::filesystem::path const & root_dir);
+	DataRun(char const * root_dir, boost::optional<Specifier> const & spec = boost::optional<Specifier>()) : DataRun(boost::filesystem::path(root_dir), spec) {}
+	DataRun(std::string const & root_dir, boost::optional<Specifier> const & spec = boost::optional<Specifier>()) : DataRun(boost::filesystem::path(root_dir), spec) {}
+	DataRun(boost::filesystem::path const & root_dir, boost::optional<Specifier> const & spec = boost::optional<Specifier>());
 
 	HARMONIC_CPP_MAKE_ACCESSOR(root, ".")
 
@@ -87,13 +143,19 @@ struct DataRun {
 
 	static bool check_valid(boost::filesystem::path const & path);
 
+	inline boost::optional<Specifier> const & specifier() { return spec; }
+
 private:
 	DataRun();
 	boost::filesystem::path root_dir;
+	boost::optional<Specifier> spec;
 
 	friend class DataRunChecker;
 	friend class DataRunPrinter;
+	friend std::ostream & operator<<(std::ostream & ostr, DataRun const & run);
 };
+
+std::ostream & operator<<(std::ostream & ostr, DataRun const & run);
 
 struct DataRunChecker {
 	bool operator()(boost::filesystem::path const & path) const {
@@ -103,11 +165,6 @@ struct DataRunChecker {
 struct DataRunCreator {
 	DataRun operator()(boost::filesystem::path const & path) const {
 		return DataRun(path);
-	}
-};
-struct DataRunPrinter {
-	std::string operator()(DataRun const & run) const {
-		return run.root_dir.native();
 	}
 };
 
@@ -147,87 +204,33 @@ boost::iterator_range<DataRunRecursiveIterator> data_run_recursive_range(std::st
 struct HarmonicDataset {
 	HarmonicDataset(std::string const & root_path);
 
-	struct Specifier {
 
-		struct PartId {
-			typedef std::size_t value;
-			inline static value get(Specifier const & spec) { return spec.part_id; }
-			inline static value parse(std::string const & val) { return boost::lexical_cast<value>(val); }
-		};
-		struct Tag {
-			typedef TAG value;
-			inline static value get(Specifier const & spec) { return spec.tag; }
-			static value parse(std::string const & val);
-		};
-		struct RunId {
-			typedef std::size_t value;
-			inline static value get(Specifier const & spec) { return spec.run_id; }
-			inline static value parse(std::string const & val) { return boost::lexical_cast<value>(val); }
-		};
-
-		template <class T>
-		struct FilterBase {
-			FilterBase(typename T::value const & filt) : filt(filt) {}
-			inline bool operator()(Specifier const & spec) const { return T::get(spec) == filt; }
-		private:
-			typename T::value filt;
-		};
-		template <class Filter1, class Filter2>
-		struct FilterAnd {
-			FilterAnd(Filter1 filt1, Filter2 filt2) : filt1(filt1), filt2(filt2) {}
-			inline bool operator()(Specifier const & spec) const { return filt1(spec) && filt2(spec); }
-		private:
-			Filter1 filt1;
-			Filter2 filt2;
-		};
-		template <class F1, class F2>
-		static FilterAnd<F1, F2> filter_and(F1 f1, F2 f2) { return FilterAnd<F1, F2>(f1, f2); }
-
-		template <class Filter1, class Filter2>
-		struct FilterOr {
-			FilterOr(Filter1 filt1, Filter2 filt2) : filt1(filt1), filt2(filt2) {}
-			inline bool operator()(Specifier const & spec) const { return filt1(spec) || filt2(spec); }
-		private:
-			Filter1 filt1;
-			Filter2 filt2;
-		};
-		template <class F1, class F2>
-		static FilterOr<F1, F2> filter_or(F1 f1, F2 f2) { return FilterOr<F1, F2>(f1, f2); }
-
-		typedef FilterBase<PartId> PartIdFilter;
-		typedef FilterBase<Tag> TagFilter;
-		typedef FilterBase<RunId> RunIdFilter;
-
-		PartId::value part_id;
-		Tag::value tag;
-		RunId::value run_id;
-
-		struct Lookup {
-		public:
-			inline DataRun operator()(Specifier const & spec) const {
-				return Lookup::lookup(root_path, spec);
-			}
-		private:
-			Lookup() : root_path() {
-				throw std::runtime_error("not accessible!");
-			}
-			Lookup(boost::filesystem::path const & path) : root_path(path) {}
-			static DataRun lookup(boost::filesystem::path const & root_path, Specifier const & spec);
-			boost::filesystem::path root_path;
-			friend class HarmonicDataset;
-		};
+	struct Lookup {
+	public:
+		inline DataRun operator()(Specifier const & spec) const {
+			return Lookup::lookup(root_path, spec);
+		}
+	private:
+		Lookup() : root_path() {
+			throw std::runtime_error("not accessible!");
+		}
+		Lookup(boost::filesystem::path const & path) : root_path(path) {}
+		static DataRun lookup(boost::filesystem::path const & root_path, Specifier const & spec);
+		boost::filesystem::path root_path;
+		friend class HarmonicDataset;
 	};
 
+
 	inline DataRun get(Specifier const & specifier) const {
-		return Specifier::Lookup::lookup(root_path, specifier);
+		return Lookup::lookup(root_path, specifier);
 	}
 	inline DataRun operator()(Specifier const & specifier) const {
 		return get(specifier);
 	}
-	inline Specifier::Lookup getter() const {
-		return Specifier::Lookup(this->root_path);
+	inline Lookup getter() const {
+		return Lookup(this->root_path);
 	}
-	inline auto transformer() const -> decltype(boost::adaptors::transformed(Specifier::Lookup())) {
+	inline auto transformer() const -> decltype(boost::adaptors::transformed(Lookup())) {
 		return boost::adaptors::transformed(getter());
 	}
 
@@ -258,6 +261,7 @@ struct HarmonicDataset {
 	}
 
 private:
+
 	boost::filesystem::path root_path;
 	std::vector<Specifier> all_data;
 };

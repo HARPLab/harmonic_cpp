@@ -17,11 +17,10 @@ int main(int argc, char** argv) {
 	harmonic::HarmonicDataset dataset(argv[1]);
 	boost::copy(
 			dataset.get(
-					harmonic::HarmonicDataset::Specifier::filter_or(
-							harmonic::HarmonicDataset::Specifier::TagFilter(harmonic::RUN),
-							harmonic::HarmonicDataset::Specifier::TagFilter(harmonic::CALIB)))
-				| boost::adaptors::transformed(harmonic::DataRunPrinter()),
-			std::ostream_iterator<std::string>(std::cout, "\n")
+					harmonic::Specifier::filter_or(
+							harmonic::Specifier::TagFilter(harmonic::RUN),
+							harmonic::Specifier::TagFilter(harmonic::CALIB))),
+			std::ostream_iterator<harmonic::DataRun>(std::cout, "\n")
 			);
 }
 

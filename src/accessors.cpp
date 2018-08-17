@@ -16,7 +16,7 @@ DataRun::DataRun() : root_dir() {
 	// Default constructor for empty (invalid) runs
 }
 
-DataRun::DataRun(boost::filesystem::path const & root_dir) : root_dir(root_dir) {
+DataRun::DataRun(boost::filesystem::path const & root_dir, boost::optional<Specifier> const & spec) : root_dir(root_dir), spec(spec) {
 	if (!DataRun::check_valid(root_dir)) {
 		throw std::runtime_error("Supplied path " + root_dir.native() + " was not a valid HARMONIC data directory.");
 	}
@@ -27,7 +27,19 @@ bool DataRun::check_valid(boost::filesystem::path const & root_dir) {
 	return boost::filesystem::is_regular_file(root_dir / DIR_STATS / "run_info.yaml");
 }
 
-HarmonicDataset::Specifier::Tag::value HarmonicDataset::Specifier::Tag::parse(const std::string & val) {
+
+std::ostream & operator<<(std::ostream & ostr, DataRun const & run) {
+	ostr << "[";
+	if (run.spec) {
+		ostr << "p" << run.spec->part_id << ":" << run.spec->run_id << " (" << get_path_from_tag(run.spec->tag).native() << ")";
+	} else {
+		ostr << "DataRun";
+	}
+	ostr << ": " << run.root_path() << "]";
+	return ostr;
+}
+
+Specifier::Tag::value Specifier::Tag::parse(const std::string & val) {
 	if (val == TAG_RUN) {
 		return RUN;
 	} else if (val == TAG_CHECK) {
@@ -94,7 +106,7 @@ HarmonicDataset::HarmonicDataset(std::string const & root_path) :
 }
 
 
-DataRun HarmonicDataset::Specifier::Lookup::lookup(boost::filesystem::path const & root_path, HarmonicDataset::Specifier const & specifier) {
+DataRun HarmonicDataset::Lookup::lookup(boost::filesystem::path const & root_path, Specifier const & specifier) {
 	std::stringstream str;
 	str << "p" << specifier.part_id;
 	boost::filesystem::path const part_path(str.str());
@@ -105,7 +117,8 @@ DataRun HarmonicDataset::Specifier::Lookup::lookup(boost::filesystem::path const
 	return DataRun(
 			root_path / part_path
 				/ get_path_from_tag(specifier.tag)
-				/ str.str()
+				/ str.str(),
+			boost::optional<Specifier>(specifier)
 			);
 
 }
