@@ -108,6 +108,8 @@ struct Specifier {
 	PartId::value part_id;
 	Tag::value tag;
 	RunId::value run_id;
+
+	std::string get_identifier() const;
 };
 
 struct DataRun {
@@ -144,6 +146,8 @@ struct DataRun {
 	static bool check_valid(boost::filesystem::path const & path);
 
 	inline boost::optional<Specifier> const & specifier() { return spec; }
+
+	std::string get_identifier() const;
 
 private:
 	DataRun();

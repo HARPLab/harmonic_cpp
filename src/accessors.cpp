@@ -7,6 +7,7 @@
 
 #include "harmonic_cpp/accessors.hpp"
 
+#include <boost/io/ios_state.hpp>
 #include <boost/regex.hpp>
 #include <sstream>
 
@@ -27,11 +28,23 @@ bool DataRun::check_valid(boost::filesystem::path const & root_dir) {
 	return boost::filesystem::is_regular_file(root_dir / DIR_STATS / "run_info.yaml");
 }
 
+std::string DataRun::get_identifier() const {
+	if (spec) {
+		return spec->get_identifier();
+	} else {
+		static const std::hash<std::string> hasher;
+		return boost::lexical_cast<std::string>(hasher(root_dir.native()));
+	}
+}
+
+
 
 std::ostream & operator<<(std::ostream & ostr, DataRun const & run) {
+	boost::io::ios_width_saver width_saver(ostr);
+	boost::io::ios_flags_saver flags_saver(ostr);
 	ostr << "[";
 	if (run.spec) {
-		ostr << "p" << run.spec->part_id << ":" << run.spec->run_id << " (" << get_path_from_tag(run.spec->tag).native() << ")";
+		ostr << "p" << run.spec->part_id << ":" << std::setw(3) << std::setfill('0') << run.spec->run_id << " (" << get_path_from_tag(run.spec->tag).native() << ")";
 	} else {
 		ostr << "DataRun";
 	}
@@ -51,12 +64,18 @@ Specifier::Tag::value Specifier::Tag::parse(const std::string & val) {
 	}
 }
 
+std::string Specifier::get_identifier() const {
+	std::stringstream str;
+	str << "p" << part_id << "_" << std::setw(3) << std::setfill('0') << run_id << "_" << get_path_from_tag(tag).native();
+	return str.str();
+}
+
 HarmonicDataset::HarmonicDataset(std::string const & root_path) :
 			root_path(root_path),
 			all_data() {
-	boost::regex const part_reg("p(\\d+)");
-	boost::regex const tag_reg("(calib|check|run)");
-	boost::regex const run_reg("(\\d+)");
+	static boost::regex const part_reg("p(\\d+)");
+	static boost::regex const tag_reg("(calib|check|run)");
+	static boost::regex const run_reg("(\\d+)");
 
 	Specifier spec;
 
