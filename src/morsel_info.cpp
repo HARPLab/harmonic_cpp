@@ -28,7 +28,7 @@ MorselInfo MorselInfo::load_from_file(boost::filesystem::path const & filename) 
 	for (unsigned int i=0; i<3; ++i) {
 		std::string const name = "morsel" + boost::lexical_cast<std::string>(i);
 		info.morsels[i].name = name;
-		if (morsels[name]) {
+		if (morsels[name] && !morsels[name].IsNull()) {
 			load_mat(morsels[name], info.morsels[i].location);
 		} else {
 			info.morsels[i].location = cv::Mat();
