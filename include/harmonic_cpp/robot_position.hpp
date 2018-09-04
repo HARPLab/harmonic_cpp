@@ -18,6 +18,8 @@ namespace harmonic {
 
 struct RobotPositionData {
 
+	static std::vector<std::string> const JOINT_NAMES;
+
 	typedef double TimeType;
 
 	struct PositionData {
@@ -33,6 +35,7 @@ struct RobotPositionData {
 	TimeType get_start_time() const;
 	TimeType get_end_time() const;
 	PositionData get_position(TimeType const & timestamp) const;
+	PositionData get_position(TimeType const & timestamp, std::vector<std::string> const & joint_names) const;
 
 
 	static RobotPositionData load_from_file(std::string const & filename);
