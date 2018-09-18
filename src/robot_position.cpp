@@ -20,7 +20,7 @@ std::map<std::string, std::size_t> const JOINT_INDEX_MAP {
 		{"mico_fork_tip", 8}
 };
 
-std::vector<std::string> const JOINT_NAMES {
+std::vector<std::string> const RobotPositionData::JOINT_NAMES {
 	"mico_link_base",
 	"mico_link_1",
 	"mico_link_2",
@@ -122,6 +122,8 @@ RobotPositionData RobotPositionData::load_from_file(std::string const & infile) 
 
 }
 
+
+
 RobotPositionData::PositionData::PositionData() :
 	data(JOINT_INDEX_MAP.size(), 3, CV_64F) {}
 
@@ -169,6 +171,16 @@ RobotPositionData::PositionData RobotPositionData::get_position(RobotPositionDat
 		return RobotPositionData::interpolate(lower->first, lower->second, pre->first, pre->second, timestamp);
 	}
 }
+
+
+//RobotPositionData::PositionData RobotPositionData::get_position(TimeType const & timestamp, std::vector<std::string> const & joint_names) const {
+//	RobotPositionData::PositionData data = this->get_position(timestamp);
+//	cv::Mat subset(3, joint_names.size(), data.data.depth());
+//	std::transform(joint_names.begin(), joint_names.end(), subset.begin< cv::Vec<3, > >(), [&data] (std::string const & name) {
+//		return data.data.col(JOINT_INDEX_MAP.at(name));
+//	});
+//
+//}
 
 RobotPositionData::PositionData RobotPositionData::interpolate(RobotPositionData::TimeType const & t1, RobotPositionData::PositionData const & d1,
 		RobotPositionData::TimeType const & t2, RobotPositionData::PositionData const & d2, RobotPositionData::TimeType const & t) {
