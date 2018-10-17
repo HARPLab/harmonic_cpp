@@ -127,7 +127,7 @@ struct DataRun {
 	HARMONIC_CPP_MAKE_ACCESSOR(processed, DIR_PROCESSED_FS)
 
 	// Pupil videos
-	HARMONIC_CPP_MAKE_ACCESSOR(pupil_world, DIR_VIDEOS_FS / "world.mp4")
+	HARMONIC_CPP_MAKE_ACCESSOR(pupil_world, DIR_VIDEOS_FS / "world.avi")
 	HARMONIC_CPP_MAKE_ACCESSOR(pupil_world_ts, DIR_VIDEOS_FS / "world_timestamps.npy")
 
 	inline TimedVideo pupil_world() const {return TimedVideo(pupil_world_path(), pupil_world_ts_path());}
