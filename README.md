@@ -40,6 +40,7 @@ Now install the package itself
 ```
 git clone git@github.com:HARPLab/harmonic_cpp.git
 cd harmonic_cpp
+git submodule init
 mkdir build && cd build
 cmake ..
 make
