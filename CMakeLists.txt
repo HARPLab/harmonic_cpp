@@ -6,8 +6,6 @@ endif()
 
 project(harmonic_cpp)
 
-include(GNUInstallDirs)
-
 
 include(CheckCXXCompilerFlag)
 CHECK_CXX_COMPILER_FLAG("-std=c++11" COMPILER_SUPPORTS_CXX11)
@@ -23,6 +21,9 @@ endif()
 # Find dependencies
 find_package(OpenCV REQUIRED)
 find_package(Boost REQUIRED COMPONENTS system filesystem regex)
+find_package(yaml-cpp REQUIRED)
+
+
 find_package(cnpy QUIET)
 
 if (NOT cnpy_FOUND)
@@ -33,14 +34,6 @@ if (NOT cnpy_FOUND)
     set_property(TARGET ${cnpy_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
 endif()
 
-find_package(yaml-cpp )
-if (NOT YAML_CPP_FOUND)
-#    message(STATUS "No builtin YAML_CPP found, building from source")
-#    add_subdirectory(3rdparty/yaml-cpp)
-#    set(YAML_CPP_LIBRARIES yaml-cpp)
-#    set(YAML_CPP_INCLUDE_DIR 3rdparty/yaml-cpp/include)
-#    set_property(TARGET ${YAML_CPP_LIBRARIES} PROPERTY POSITION_INDEPENDENT_CODE ON) 
-endif()
 
 
 # Set version info
