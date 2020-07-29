@@ -1,6 +1,3 @@
 [submodule "3rdparty/cnpy"]
 	path = 3rdparty/cnpy
 	url = git@github.com:rogersce/cnpy.git
-[submodule "3rdparty/yaml-cpp"]
-	path = 3rdparty/yaml-cpp
-	url = git@github.com:jbeder/yaml-cpp.git
