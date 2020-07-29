@@ -38,9 +38,9 @@ endif()
 
 # Set version info
 set(harmonic_cpp_VERSION_MAJOR 0)
-set(harmonic_cpp_VERSION_MINOR 1)
+set(harmonic_cpp_VERSION_MINOR 2)
 set(harmonic_cpp_VERSION ${harmonic_cpp_VERSION_MAJOR}.${harmonic_cpp_VERSION_MINOR})
-set(harmonic_cpp_SOVERSION 0.1)
+set(harmonic_cpp_SOVERSION ${harmonic_cpp_VERSION})
 
 # Set up targets
 include_directories(
